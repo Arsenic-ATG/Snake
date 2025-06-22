@@ -2,7 +2,7 @@
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_main.h>
 
-#include "snake.hpp"
+#include "./snake.hpp"
 #include <algorithm>
 #include <memory>
 
@@ -15,7 +15,7 @@ typedef struct {
   SDL_Window *window;
   SDL_Renderer *renderer;
 
-  std::unique_ptr<Board> board;
+  std::unique_ptr<game::Board> board;
 
   /* offset at which the board must start from */
   const int x_offset;
@@ -47,8 +47,8 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[]) {
   constexpr auto x_offset = 100;
   constexpr auto y_offset = 100;
 
-  auto board = std::make_unique<Board>(
-      Board(default_grid_size, {default_snake_pos_x, default_snake_pos_y}));
+  auto board = std::make_unique<game::Board>(game::Board(
+      game::default_grid_size, {default_snake_pos_x, default_snake_pos_y}));
   const auto grid_size = board->get_grid_size();
   const auto grid_length =
       std::min(win_width - (2 * x_offset), win_height - (2 * y_offset));
@@ -75,19 +75,19 @@ SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event) {
     switch (event->key.scancode) {
       /* Handle movement keys */
     case SDL_SCANCODE_W:
-      game_state->board->update_snake_dir(Direction::north);
+      game_state->board->update_snake_dir(game::Direction::north);
       game_state->is_paused = false;
       break;
     case SDL_SCANCODE_A:
-      game_state->board->update_snake_dir(Direction::west);
+      game_state->board->update_snake_dir(game::Direction::west);
       game_state->is_paused = false;
       break;
     case SDL_SCANCODE_S:
-      game_state->board->update_snake_dir(Direction::south);
+      game_state->board->update_snake_dir(game::Direction::south);
       game_state->is_paused = false;
       break;
     case SDL_SCANCODE_D:
-      game_state->board->update_snake_dir(Direction::east);
+      game_state->board->update_snake_dir(game::Direction::east);
       game_state->is_paused = false;
       break;
     case SDL_SCANCODE_P:
@@ -125,9 +125,9 @@ void draw_grid(const game_state_t *game_state) {
   }
 }
 
-/* Get absolute screen coordinates of cell (x,y) in the Board grid */
+/* Get absolute screen coordinates of cell (x,y) in the game::Board grid */
 auto get_absolute_coords(const game_state_t *game_state,
-                         const grid_coords_t grid_coords) {
+                         const game::grid_coords_t grid_coords) {
   SDL_FPoint abs_coords;
   abs_coords.x = game_state->x_offset + (grid_coords.x * game_state->cell_size);
   abs_coords.y = game_state->y_offset + (grid_coords.y * game_state->cell_size);
@@ -137,7 +137,7 @@ auto get_absolute_coords(const game_state_t *game_state,
 
 /* fill the grid cell pointed by grid_coords */
 auto fill_cell(const game_state_t *game_state,
-               const grid_coords_t grid_coords) {
+               const game::grid_coords_t grid_coords) {
   SDL_FPoint coords = get_absolute_coords(game_state, grid_coords);
   SDL_FRect cell = {coords.x + 5, coords.y + 5, game_state->cell_size - 8,
                     game_state->cell_size - 8};
@@ -166,12 +166,11 @@ SDL_AppResult SDL_AppIterate(void *appstate) {
   game_state_t *game_state = static_cast<game_state_t *>(appstate);
 
   if (!game_state->is_paused) {
-    if (!game_state->board->update())
-      {
-        /* game over */
-        game_state->board->reset();
-        game_state->is_paused = true;
-      }
+    if (!game_state->board->update()) {
+      /* game over */
+      game_state->board->reset();
+      game_state->is_paused = true;
+    }
   }
   /* draw background*/
   SDL_SetRenderDrawColor(game_state->renderer, 0, 0, 0,
