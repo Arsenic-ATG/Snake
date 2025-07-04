@@ -1,3 +1,14 @@
+/**@file main.cpp
+ * @brief entery point of the program
+ *
+ * This contains all the SDL fucntion and mainly responsible for all the
+ * rendering and UI stuff, core game logic is present in snake.hpp/cpp files
+ *
+ * The program uses SDL3's main callback fucntion which takes care of different
+ * entry points for different platforms (especially usefull when using
+ * emscripten to build this project)
+ */
+
 #define SDL_MAIN_USE_CALLBACKS 1
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_main.h>
@@ -6,11 +17,22 @@
 #include <algorithm>
 #include <memory>
 
+/**
+ * Default width and height of the main window.
+ * TODO: test and see what happens when the window is not square.
+ */
 constexpr int win_width = 650;
 constexpr int win_height = 650;
-constexpr int default_snake_pos_x = 5;
-constexpr int default_snake_pos_y = 5;
 
+/**
+ * Game State
+ *
+ * pointer to this structure would be made avaialable by SDL throught the
+ * rendering pipeline, a pointer to it would be passed around to all the SDL
+ * functions as "appstate". If there is anything that is needed by all the SDL
+ * functions, it would most probabbly go here instead of existing as a global
+ * variable
+ */
 typedef struct {
   SDL_Window *window;
   SDL_Renderer *renderer;
@@ -27,6 +49,14 @@ typedef struct {
   bool is_game_over;
 } game_state_t;
 
+/**
+ * SDL_APPInit
+ *
+ * intial entry point of for SDL3, this runs first at the begining of the
+ * program, so put stuff that is related any kind of initialisation here.
+ *
+ * Learn more about it here: https://wiki.libsdl.org/SDL3/SDL_AppInit
+ */
 SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[]) {
   SDL_SetAppMetadata("snake", "v.1.0", "com.snake.test");
 
@@ -43,12 +73,10 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[]) {
     return SDL_APP_FAILURE;
   }
 
-  // init goard offsets (these are hardcoded for now)
+  // init board offsets (these are hardcoded for now)
   constexpr auto x_offset = 100;
   constexpr auto y_offset = 100;
-
-  auto board = std::make_unique<game::Board>(game::Board(
-      game::default_grid_size, {default_snake_pos_x, default_snake_pos_y}));
+  auto board = std::make_unique<game::Board>(game::Board());
   const auto grid_size = board->get_grid_size();
   const auto grid_length =
       std::min(win_width - (2 * x_offset), win_height - (2 * y_offset));
@@ -63,10 +91,16 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[]) {
                                .cell_size = cell_size,
                                .is_paused = true,
                                .is_game_over = false};
-
   return SDL_APP_CONTINUE;
 }
 
+/**
+ * SDL_APPEvent
+ *
+ * This handles AppEvents (at this point these are user inputs or keystrokes)
+ *
+ * Learn more about it here: https://wiki.libsdl.org/SDL3/SDL_AppEvent
+ */
 SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event) {
   game_state_t *game_state = static_cast<game_state_t *>(appstate);
   if (event->type == SDL_EVENT_QUIT)
@@ -105,7 +139,11 @@ SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event) {
 
 /*====== utility functions for rendering ======*/
 
-/* draw the making grid at location x,y (square grid)*/
+/**
+ * draw_grid
+ *
+ * draw the game grid at location x,y (square grid)
+ */
 void draw_grid(const game_state_t *game_state) {
   SDL_SetRenderDrawColor(game_state->renderer, 128, 128, 128,
                          SDL_ALPHA_OPAQUE); /* white, full Alpha */
@@ -125,7 +163,11 @@ void draw_grid(const game_state_t *game_state) {
   }
 }
 
-/* Get absolute screen coordinates of cell (x,y) in the game::Board grid */
+/**
+ * get_absolute_coords
+ *
+ * Get absolute screen coordinates of cell (x,y) in the game::Board grid
+ */
 auto get_absolute_coords(const game_state_t *game_state,
                          const game::grid_coords_t grid_coords) {
   SDL_FPoint abs_coords;
@@ -135,7 +177,11 @@ auto get_absolute_coords(const game_state_t *game_state,
   return abs_coords;
 }
 
-/* fill the grid cell pointed by grid_coords */
+/**
+ * fill_cell
+ *
+ * fill the grid cell pointed by grid_coords
+ */
 auto fill_cell(const game_state_t *game_state,
                const game::grid_coords_t grid_coords) {
   SDL_FPoint coords = get_absolute_coords(game_state, grid_coords);
@@ -144,6 +190,11 @@ auto fill_cell(const game_state_t *game_state,
   return SDL_RenderFillRect(game_state->renderer, &cell);
 }
 
+/**
+ * draw_snake
+ *
+ * draw the snake in the grid
+ */
 void draw_snake(const game_state_t *game_state) {
   const auto snake_body = game_state->board->get_snake().get_body();
 
@@ -154,6 +205,11 @@ void draw_snake(const game_state_t *game_state) {
   }
 }
 
+/**
+ * draw_food
+ *
+ * draw the food in the grid
+ */
 void draw_food(const game_state_t *game_state) {
   SDL_SetRenderDrawColor(game_state->renderer, 0, 255, 0,
                          SDL_ALPHA_OPAQUE); /* red, full Alpha */
@@ -162,6 +218,15 @@ void draw_food(const game_state_t *game_state) {
 }
 /*=============================================*/
 
+/**
+ * SDL_APPIterate
+ *
+ * This function is equivalant to game loop (or update loop) in other
+ * game/rendering engines, this will be called over and over responsible for
+ * rendering and updating the frame of the application.
+ *
+ * Learn more about it here: https://wiki.libsdl.org/SDL3/SDL_AppIteratet
+ */
 SDL_AppResult SDL_AppIterate(void *appstate) {
   game_state_t *game_state = static_cast<game_state_t *>(appstate);
 
@@ -187,4 +252,12 @@ SDL_AppResult SDL_AppIterate(void *appstate) {
   return SDL_APP_CONTINUE;
 }
 
+/**
+ * SDL_APPQuit
+ *
+ * This function is called before the program terminates, so if there is some
+ * cleanup which you want to do, this is the function to use.
+ *
+ * Learn more about it here: https://wiki.libsdl.org/SDL3/SDL_AppQuit
+ */
 void SDL_AppQuit(void *appstate, SDL_AppResult result) {}

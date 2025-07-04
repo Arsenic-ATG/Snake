@@ -1,5 +1,5 @@
 /**@file snake.hpp
- * @brief contains function prototypes for snake
+ * @brief contains function prototypes for snake game
  *
  * This contains function prototypes responsible for the game logic. the
  * definitions would be present in snake.cpp
@@ -13,7 +13,7 @@
 
 namespace game {
 
-constexpr unsigned int default_grid_size = 11;
+constexpr unsigned int default_grid_size = 20;
 
 /**
  * represents coordinates on the game board
@@ -29,7 +29,14 @@ struct grid_coords_t {
 };
 
 /**
- * all the directions a snake can take on the board
+ * chose center of the grid as default location (grid starts at 0,0 that's why
+ * -1)
+ */
+const grid_coords_t default_snake_pos = {(default_grid_size / 2) - 1,
+                                         (default_grid_size / 2) - 1};
+
+/**
+ * All the directions a snake can take on the board
  */
 enum Direction { north = 0, east, south, west };
 
@@ -81,6 +88,10 @@ public:
   auto has_snake(const grid_coords_t here) const -> bool;
 };
 
+/**@class Board
+ * @brief Contains behavior of the game board
+ *
+ */
 class Board {
   unsigned int grid_size;
   std::vector<grid_coords_t> grid;
@@ -93,13 +104,13 @@ class Board {
 
 public:
   Board(const unsigned int grid_size = default_grid_size,
-        const grid_coords_t init_snake_coords = {0, 0})
+        const grid_coords_t init_snake_coords = default_snake_pos)
       : grid_size(grid_size), init_snake_coords(init_snake_coords),
         snake(std::make_unique<Snake>(Snake(init_snake_coords))) {
     spawn_new_food();
   }
 
-  // Getters
+  /* getters */
   auto get_grid_size() const { return grid_size; }
   auto get_snake() { return *snake; }
   auto get_food_loc() const { return food_loc; }

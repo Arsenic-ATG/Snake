@@ -45,10 +45,11 @@ bool game::Snake::has_snake(const grid_coords_t here) const {
 /*-------------*/
 
 bool game::Board::will_collide(const grid_coords_t next_loc) const {
+
   return (
-      /* check collision with walls */
-      ((next_loc.x <= 0 || next_loc.x >= grid_size) ||
-       (next_loc.y <= 0 || next_loc.y >= grid_size)) ||
+      /* check collision with walls (coordinates are unsigned so no need to
+         check for lower bound) */
+      ((next_loc.x >= grid_size) || (next_loc.y >= grid_size)) ||
       /*  check collision with body */
       snake->has_snake(next_loc));
 }

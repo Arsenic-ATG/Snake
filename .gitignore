@@ -1,5 +1,10 @@
 # These files would be ignored by git
 
+###################
+### Build files ###
+###################
+./build.em/*
+
 ###########
 ### C++ ###
 ###########
