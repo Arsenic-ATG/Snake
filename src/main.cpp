@@ -40,8 +40,8 @@ typedef struct {
   std::unique_ptr<game::Board> board;
 
   /* offset at which the board must start from */
-  const int x_offset;
-  const int y_offset;
+  const float x_offset;
+  const float y_offset;
   const float grid_length;
   const float cell_size;
 
@@ -73,6 +73,10 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[]) {
     return SDL_APP_FAILURE;
   }
 
+  // Change the blening mode to blend (for alpha value of colors to have an
+  // effect when rending stuff)
+  SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
+
   // init board offsets (these are hardcoded for now)
   constexpr auto x_offset = 100;
   constexpr auto y_offset = 100;
@@ -91,6 +95,7 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[]) {
                                .cell_size = cell_size,
                                .is_paused = true,
                                .is_game_over = false};
+
   return SDL_APP_CONTINUE;
 }
 
@@ -107,7 +112,8 @@ SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event) {
     return SDL_APP_SUCCESS;
   else if (event->type == SDL_EVENT_KEY_DOWN) {
     switch (event->key.scancode) {
-      /* Handle movement keys */
+      /* Handle movement keys (unpause the game as soon as any direction is
+       * changed)*/
     case SDL_SCANCODE_W:
       game_state->board->update_snake_dir(game::Direction::north);
       game_state->is_paused = false;
@@ -145,10 +151,21 @@ SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event) {
  * draw the game grid at default location (presend in GAME_STATE)
  */
 void draw_grid(const game_state_t *game_state) {
-  SDL_SetRenderDrawColor(game_state->renderer, 128, 128, 128,
-                         SDL_ALPHA_OPAQUE); /* white, full Alpha */
 
-  for (auto i = 0u; i <= game_state->board->get_grid_size(); ++i) {
+  // draw outer boundary lines in solid white color and internal lines as almost
+  // transparent
+
+  /*  draw outer boundary */
+  SDL_SetRenderDrawColor(game_state->renderer, 216, 222, 233,
+                         SDL_ALPHA_OPAQUE); /*#d8dee9*/
+  SDL_FRect boundry = {game_state->x_offset, game_state->y_offset,
+                       game_state->grid_length, game_state->grid_length};
+  SDL_RenderRect(game_state->renderer, &boundry);
+
+  /* draw internal lines. */
+  SDL_SetRenderDrawColor(game_state->renderer, 59, 66, 82,
+                         SDL_ALPHA_OPAQUE); /*#3b4252*/
+  for (auto i = 1u; i < game_state->board->get_grid_size(); ++i) {
     // render rows
     SDL_RenderLine(game_state->renderer,
                    game_state->x_offset + (game_state->cell_size * i),
@@ -198,8 +215,8 @@ auto fill_cell(const game_state_t *game_state,
 void draw_snake(const game_state_t *game_state) {
   const auto snake_body = game_state->board->get_snake().get_body();
 
-  SDL_SetRenderDrawColor(game_state->renderer, 255, 0, 0,
-                         SDL_ALPHA_OPAQUE); /* red, full Alpha */
+  SDL_SetRenderDrawColor(game_state->renderer, 163, 190, 140,
+                         SDL_ALPHA_OPAQUE); /* #a3be8c */
   for (auto const &curr_body_co : snake_body) {
     fill_cell(game_state, {curr_body_co.x, curr_body_co.y});
   }
@@ -211,8 +228,8 @@ void draw_snake(const game_state_t *game_state) {
  * draw the food in the grid
  */
 void draw_food(const game_state_t *game_state) {
-  SDL_SetRenderDrawColor(game_state->renderer, 0, 255, 0,
-                         SDL_ALPHA_OPAQUE); /* red, full Alpha */
+  SDL_SetRenderDrawColor(game_state->renderer, 191, 97, 106,
+                         SDL_ALPHA_OPAQUE); /* #bf616a */
   auto food_loc = game_state->board->get_food_loc();
   fill_cell(game_state, food_loc);
 }
@@ -238,8 +255,8 @@ SDL_AppResult SDL_AppIterate(void *appstate) {
     }
   }
   /* draw background*/
-  SDL_SetRenderDrawColor(game_state->renderer, 0, 0, 0,
-                         SDL_ALPHA_OPAQUE); /* black, full Alpha */
+  SDL_SetRenderDrawColor(game_state->renderer, 46, 52, 64,
+                         SDL_ALPHA_OPAQUE); /* #2e3440 */
   SDL_RenderClear(game_state->renderer);
 
   draw_grid(game_state);
