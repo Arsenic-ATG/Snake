@@ -21,8 +21,8 @@
  * Default width and height of the main window.
  * TODO: test and see what happens when the window is not square.
  */
-constexpr int win_width = 650;
-constexpr int win_height = 650;
+constexpr int win_width = 1000;
+constexpr int win_height = 1000;
 
 /**
  * Game State
@@ -52,7 +52,7 @@ typedef struct {
 /**
  * SDL_APPInit
  *
- * intial entry point of for SDL3, this runs first at the begining of the
+ * Intial entry point of for SDL3, this runs first at the begining of the
  * program, so put stuff that is related any kind of initialisation here.
  *
  * Learn more about it here: https://wiki.libsdl.org/SDL3/SDL_AppInit
@@ -142,7 +142,7 @@ SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event) {
 /**
  * draw_grid
  *
- * draw the game grid at location x,y (square grid)
+ * draw the game grid at default location (presend in GAME_STATE)
  */
 void draw_grid(const game_state_t *game_state) {
   SDL_SetRenderDrawColor(game_state->renderer, 128, 128, 128,
@@ -216,7 +216,7 @@ void draw_food(const game_state_t *game_state) {
   auto food_loc = game_state->board->get_food_loc();
   fill_cell(game_state, food_loc);
 }
-/*=============================================*/
+/*=============== End of Utility function ===============*/
 
 /**
  * SDL_APPIterate
@@ -248,7 +248,7 @@ SDL_AppResult SDL_AppIterate(void *appstate) {
 
   SDL_RenderPresent(game_state->renderer);
 
-  SDL_Delay(200);
+  SDL_Delay(100);
   return SDL_APP_CONTINUE;
 }
 

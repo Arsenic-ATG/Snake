@@ -37,6 +37,9 @@ const grid_coords_t default_snake_pos = {(default_grid_size / 2) - 1,
 
 /**
  * All the directions a snake can take on the board
+ * numbering the direction from zero in cyclinc order so as to speed up the
+ * process of checking an illegal change in direction.
+ * (see board::update_snake_direction() for more details)
  */
 enum Direction { north = 0, east, south, west };
 
@@ -57,6 +60,7 @@ public:
 
   /* getters */
   auto get_body() const { return body; }
+  auto get_size() const { return body.size(); }
   auto get_head() const { return head; }
   auto get_direction() const { return direction; }
   auto get_next_head_location() const {
@@ -116,7 +120,7 @@ public:
   auto get_food_loc() const { return food_loc; }
   auto get_grid() const { return grid; }
 
-  auto update_snake_dir(Direction dir) -> void { snake->set_direction(dir); }
+  auto update_snake_dir(const Direction dir) -> void;
   auto update() -> bool;
   auto reset() -> bool;
 };
