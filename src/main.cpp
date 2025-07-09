@@ -144,23 +144,39 @@ SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event) {
       /* Handle movement keys (unpause the game as soon as any direction is
        * changed)*/
     case SDL_SCANCODE_W:
-      game_ctx->board->update_snake_dir(game::Direction::north);
-      game_ctx->game_state = State::play;
+      if (game_ctx->game_state == State::play) {
+        game_ctx->board->update_snake_dir(game::Direction::north);
+      }
       break;
     case SDL_SCANCODE_A:
-      game_ctx->board->update_snake_dir(game::Direction::west);
-      game_ctx->game_state = State::play;
+      if (game_ctx->game_state == State::play) {
+        game_ctx->board->update_snake_dir(game::Direction::west);
+      }
       break;
     case SDL_SCANCODE_S:
-      game_ctx->board->update_snake_dir(game::Direction::south);
-      game_ctx->game_state = State::play;
+      if (game_ctx->game_state == State::play) {
+        game_ctx->board->update_snake_dir(game::Direction::south);
+      }
       break;
     case SDL_SCANCODE_D:
-      game_ctx->board->update_snake_dir(game::Direction::east);
-      game_ctx->game_state = State::play;
+      if (game_ctx->game_state == State::play) {
+        game_ctx->board->update_snake_dir(game::Direction::east);
+      }
       break;
     case SDL_SCANCODE_P:
-      game_ctx->game_state = State::paused;
+      if (game_ctx->game_state == State::play) {
+        game_ctx->game_state = State::paused;
+      } else if (game_ctx->game_state == State::paused) {
+        game_ctx->game_state = State::play;
+      } else if (game_ctx->game_state == State::game_over ||
+                 game_ctx->game_state == State::title) {
+        game_ctx->board->reset();
+        game_ctx->game_state = State::play;
+      }
+      break;
+    case SDL_SCANCODE_R:
+      game_ctx->board->reset();
+      game_ctx->game_state = State::title;
       break;
 
     case SDL_SCANCODE_ESCAPE:
