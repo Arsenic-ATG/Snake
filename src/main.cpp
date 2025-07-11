@@ -18,6 +18,7 @@
 #include <algorithm>
 #include <cstring>
 #include <memory>
+#include <string>
 
 /**
  * Defaults
@@ -293,6 +294,20 @@ void draw_food(const game_ctx_t *game_ctx) {
 }
 
 /**
+ * draw_score_board
+ *
+ * draw the score_board above grid
+ */
+void draw_score_board(const game_ctx_t *game_ctx){
+  const auto score = game_ctx->board->get_snake().get_size()-1;
+
+  TTF_SetFontSize(game_ctx->font, default_font_size * 2);
+  SDL_Color color = {255, 255, 255, 255};/* #ffffff */
+  SDL_FPoint loc = {game_ctx->x_offset + (game_ctx->grid_length / 2.0f),
+                    game_ctx->y_offset - (game_ctx->grid_length / 16.0f)};
+  draw_text(game_ctx, ("Score: "+std::to_string(score)).c_str(), loc, color, CENTER_ALLIGN);
+}
+/**
  * draw a transparent background window on top of playing board to show any
  * information about intrupt ( can be title_window, pause screen, game over
  * screen etc)
@@ -366,6 +381,7 @@ void draw_playing_screen(const game_ctx_t *game_ctx) {
   draw_grid(game_ctx);
   draw_snake(game_ctx);
   draw_food(game_ctx);
+  draw_score_board(game_ctx);
 }
 
 /**
