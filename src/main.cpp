@@ -136,7 +136,7 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[]) {
  *
  * Learn more about it here: https://wiki.libsdl.org/SDL3/SDL_AppEvent
  */
-SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event) {
+SDL_AppResult SDL_AppEvent (void *appstate, SDL_Event *event) {
   game_ctx_t *game_ctx = static_cast<game_ctx_t *>(appstate);
   if (event->type == SDL_EVENT_QUIT)
     return SDL_APP_SUCCESS;
