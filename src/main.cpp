@@ -141,33 +141,95 @@ SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event) {
   if (event->type == SDL_EVENT_QUIT)
     return SDL_APP_SUCCESS;
   else if (event->type == SDL_EVENT_KEY_DOWN) {
-    switch (event->key.scancode) {
-      /* Handle movement keys (unpause the game as soon as any direction is
-       * changed)*/
-    case SDL_SCANCODE_W:
-      game_ctx->board->update_snake_dir(game::Direction::north);
-      game_ctx->game_state = State::play;
-      break;
-    case SDL_SCANCODE_A:
-      game_ctx->board->update_snake_dir(game::Direction::west);
-      game_ctx->game_state = State::play;
-      break;
-    case SDL_SCANCODE_S:
-      game_ctx->board->update_snake_dir(game::Direction::south);
-      game_ctx->game_state = State::play;
-      break;
-    case SDL_SCANCODE_D:
-      game_ctx->board->update_snake_dir(game::Direction::east);
-      game_ctx->game_state = State::play;
-      break;
-    case SDL_SCANCODE_P:
-      game_ctx->game_state = State::paused;
-      break;
+    switch (game_ctx->game_state) {
+    case State::play:
+      switch (event->key.scancode) {
+      case SDL_SCANCODE_W:
+        game_ctx->board->update_snake_dir(game::Direction::north);
+        break;
+      case SDL_SCANCODE_A:
+        game_ctx->board->update_snake_dir(game::Direction::west);
+        break;
+      case SDL_SCANCODE_S:
+        game_ctx->board->update_snake_dir(game::Direction::south);
+        break;
+      case SDL_SCANCODE_D:
+        game_ctx->board->update_snake_dir(game::Direction::east);
+        break;
+      case SDL_SCANCODE_P:
+        game_ctx->game_state = State::paused;
+        break;
+      case SDL_SCANCODE_R:
+        game_ctx->board->reset();
+        game_ctx->game_state = State::title;
+        break;
+      case SDL_SCANCODE_ESCAPE:
+        return SDL_APP_SUCCESS;
+      default:
+        break;
+      }
+      break; // End of State::play case
 
-    case SDL_SCANCODE_ESCAPE:
-      return SDL_APP_SUCCESS;
-    default:
-      break;
+    case State::paused:
+      switch (event->key.scancode) {
+      case SDL_SCANCODE_W:
+      case SDL_SCANCODE_A:
+      case SDL_SCANCODE_S:
+      case SDL_SCANCODE_D:
+        // Unpause the game when any movement key is pressed
+        game_ctx->game_state = State::play;
+        // Update direction only if it's a movement key
+        if (event->key.scancode == SDL_SCANCODE_W)
+          game_ctx->board->update_snake_dir(game::Direction::north);
+        else if (event->key.scancode == SDL_SCANCODE_A)
+          game_ctx->board->update_snake_dir(game::Direction::west);
+        else if (event->key.scancode == SDL_SCANCODE_S)
+          game_ctx->board->update_snake_dir(game::Direction::south);
+        else if (event->key.scancode == SDL_SCANCODE_D)
+          game_ctx->board->update_snake_dir(game::Direction::east);
+        break;
+      case SDL_SCANCODE_P:
+        game_ctx->game_state = State::play; // Unpause the game
+        break;
+      case SDL_SCANCODE_R:
+        game_ctx->board->reset();
+        game_ctx->game_state = State::title;
+        break;
+      case SDL_SCANCODE_ESCAPE:
+        return SDL_APP_SUCCESS;
+      default:
+        break;
+      }
+      break; // End of State::paused case
+
+    case State::title:
+    case State::game_over:
+      switch (event->key.scancode) {
+      case SDL_SCANCODE_W:
+      case SDL_SCANCODE_A:
+      case SDL_SCANCODE_S:
+      case SDL_SCANCODE_D:
+        // Start playing from title/game_over and update direction
+        game_ctx->game_state = State::play;
+        if (event->key.scancode == SDL_SCANCODE_W)
+          game_ctx->board->update_snake_dir(game::Direction::north);
+        else if (event->key.scancode == SDL_SCANCODE_A)
+          game_ctx->board->update_snake_dir(game::Direction::west);
+        else if (event->key.scancode == SDL_SCANCODE_S)
+          game_ctx->board->update_snake_dir(game::Direction::south);
+        else if (event->key.scancode == SDL_SCANCODE_D)
+          game_ctx->board->update_snake_dir(game::Direction::east);
+        break;
+      case SDL_SCANCODE_R:
+        game_ctx->board->reset();
+        game_ctx->game_state = State::title;
+        break;
+      case SDL_SCANCODE_ESCAPE:
+        return SDL_APP_SUCCESS;
+      default:
+        break;
+      }
+      break; // End of State::title and State::game_over case
     }
   }
   return SDL_APP_CONTINUE;
