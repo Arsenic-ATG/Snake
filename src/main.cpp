@@ -168,7 +168,7 @@ SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event) {
       default:
         break;
       }
-      break; // End of State::play case
+      break;
 
     case State::paused:
       switch (event->key.scancode) {
@@ -176,9 +176,7 @@ SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event) {
       case SDL_SCANCODE_A:
       case SDL_SCANCODE_S:
       case SDL_SCANCODE_D:
-        // Unpause the game when any movement key is pressed
         game_ctx->game_state = State::play;
-        // Update direction only if it's a movement key
         if (event->key.scancode == SDL_SCANCODE_W)
           game_ctx->board->update_snake_dir(game::Direction::north);
         else if (event->key.scancode == SDL_SCANCODE_A)
@@ -189,7 +187,7 @@ SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event) {
           game_ctx->board->update_snake_dir(game::Direction::east);
         break;
       case SDL_SCANCODE_P:
-        game_ctx->game_state = State::play; // Unpause the game
+        game_ctx->game_state = State::play;
         break;
       case SDL_SCANCODE_R:
         game_ctx->board->reset();
@@ -200,7 +198,7 @@ SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event) {
       default:
         break;
       }
-      break; // End of State::paused case
+      break;
 
     case State::title:
     case State::game_over:
@@ -209,7 +207,6 @@ SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event) {
       case SDL_SCANCODE_A:
       case SDL_SCANCODE_S:
       case SDL_SCANCODE_D:
-        // Start playing from title/game_over and update direction
         game_ctx->game_state = State::play;
         if (event->key.scancode == SDL_SCANCODE_W)
           game_ctx->board->update_snake_dir(game::Direction::north);
@@ -220,16 +217,12 @@ SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event) {
         else if (event->key.scancode == SDL_SCANCODE_D)
           game_ctx->board->update_snake_dir(game::Direction::east);
         break;
-      case SDL_SCANCODE_R:
-        game_ctx->board->reset();
-        game_ctx->game_state = State::title;
-        break;
       case SDL_SCANCODE_ESCAPE:
         return SDL_APP_SUCCESS;
       default:
         break;
       }
-      break; // End of State::title and State::game_over case
+      break;
     }
   }
   return SDL_APP_CONTINUE;
@@ -360,14 +353,15 @@ void draw_food(const game_ctx_t *game_ctx) {
  *
  * draw the score_board above grid
  */
-void draw_score_board(const game_ctx_t *game_ctx){
-  const auto score = game_ctx->board->get_snake().get_size()-1;
+void draw_score_board(const game_ctx_t *game_ctx) {
+  const auto score = game_ctx->board->get_snake().get_size() - 1;
 
   TTF_SetFontSize(game_ctx->font, default_font_size * 2);
-  SDL_Color color = {255, 255, 255, 255};/* #ffffff */
+  SDL_Color color = {255, 255, 255, 255}; /* #ffffff */
   SDL_FPoint loc = {game_ctx->x_offset + (game_ctx->grid_length / 2.0f),
                     game_ctx->y_offset - (game_ctx->grid_length / 16.0f)};
-  draw_text(game_ctx, ("Score: "+std::to_string(score)).c_str(), loc, color, CENTER_ALLIGN);
+  draw_text(game_ctx, ("Score: " + std::to_string(score)).c_str(), loc, color,
+            CENTER_ALLIGN);
 }
 /**
  * draw a transparent background window on top of playing board to show any
