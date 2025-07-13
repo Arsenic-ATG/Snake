@@ -24,8 +24,8 @@
  * Defaults
  * TODO: test and see what happens when the window is not square.
  */
-constexpr int win_width = 1000;
-constexpr int win_height = 1000;
+constexpr int win_width = 650;
+constexpr int win_height = 650;
 constexpr int default_font_size = 32;
 
 #define CENTER_ALLIGN true
@@ -108,8 +108,8 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[]) {
   SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
 
   // init board offsets (these are hardcoded for now)
-  constexpr auto x_offset = 100;
-  constexpr auto y_offset = 100;
+  constexpr auto x_offset = 32;
+  constexpr auto y_offset = 32;
   auto board = std::make_unique<game::Board>(game::Board());
   const auto grid_size = board->get_grid_size();
   const auto grid_length =
@@ -136,7 +136,7 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[]) {
  *
  * Learn more about it here: https://wiki.libsdl.org/SDL3/SDL_AppEvent
  */
-SDL_AppResult SDL_AppEvent (void *appstate, SDL_Event *event) {
+SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event) {
   game_ctx_t *game_ctx = static_cast<game_ctx_t *>(appstate);
   if (event->type == SDL_EVENT_QUIT)
     return SDL_APP_SUCCESS;
@@ -241,10 +241,6 @@ void draw_text(const game_ctx_t *game_ctx, const char *text,
   SDL_Surface *sdl_surface =
       TTF_RenderText_Blended(game_ctx->font, text, strlen(text), color);
 
-  // SDL_Color bgcolor = {235, 0, 0, 255};
-  // SDL_Surface *sdl_surface =
-  //   TTF_RenderText_Shaded(game_ctx->font, text, strlen(text), color,
-  //   bgcolor);
   SDL_Texture *texture =
       SDL_CreateTextureFromSurface(game_ctx->renderer, sdl_surface);
   float width, height;
@@ -316,8 +312,8 @@ auto get_absolute_coords(const game_ctx_t *game_ctx,
 auto fill_cell(const game_ctx_t *game_ctx,
                const game::grid_coords_t grid_coords) {
   SDL_FPoint coords = get_absolute_coords(game_ctx, grid_coords);
-  SDL_FRect cell = {coords.x + 5, coords.y + 5, game_ctx->cell_size - 8,
-                    game_ctx->cell_size - 8};
+  SDL_FRect cell = {coords.x, coords.y, game_ctx->cell_size,
+                    game_ctx->cell_size};
   return SDL_RenderFillRect(game_ctx->renderer, &cell);
 }
 
@@ -356,13 +352,14 @@ void draw_food(const game_ctx_t *game_ctx) {
 void draw_score_board(const game_ctx_t *game_ctx) {
   const auto score = game_ctx->board->get_snake().get_size() - 1;
 
-  TTF_SetFontSize(game_ctx->font, default_font_size * 2);
+  TTF_SetFontSize(game_ctx->font, default_font_size - 5);
   SDL_Color color = {255, 255, 255, 255}; /* #ffffff */
   SDL_FPoint loc = {game_ctx->x_offset + (game_ctx->grid_length / 2.0f),
-                    game_ctx->y_offset - (game_ctx->grid_length / 16.0f)};
+                    game_ctx->y_offset - (game_ctx->grid_length / 16.0f) + 20};
   draw_text(game_ctx, ("Score: " + std::to_string(score)).c_str(), loc, color,
             CENTER_ALLIGN);
 }
+
 /**
  * draw a transparent background window on top of playing board to show any
  * information about intrupt ( can be title_window, pause screen, game over
@@ -392,7 +389,7 @@ void draw_title_screen(const game_ctx_t *game_ctx) {
   SDL_FPoint loc;
 
   /*  Draw title Text */
-  TTF_SetFontSize(game_ctx->font, default_font_size + 200);
+  TTF_SetFontSize(game_ctx->font, default_font_size + 170);
   color = {235, 203, 139, 255};
   loc = {game_ctx->x_offset + (game_ctx->grid_length / 2.0f),
          game_ctx->y_offset + (game_ctx->grid_length / 4.0f)};
@@ -423,6 +420,14 @@ void draw_title_screen(const game_ctx_t *game_ctx) {
 
   color = {180, 147, 173, 255};
   loc.y += 40;
+  draw_text(game_ctx, "R -", loc, color);
+  loc.x += 40;
+  color = {136, 192, 208, 255};
+  draw_text(game_ctx, "Reset", loc, color);
+  loc.x -= 40;
+
+  color = {180, 147, 173, 255};
+  loc.y += 40;
   draw_text(game_ctx, "Esc -", loc, color);
   loc.x += 55;
   color = {136, 192, 208, 255};
@@ -447,16 +452,16 @@ void draw_pause_screen(const game_ctx_t *game_ctx) {
   draw_playing_screen(game_ctx);
   draw_intrupt_bgwindow(game_ctx);
   /* Draw Text */
-  TTF_SetFontSize(game_ctx->font, default_font_size + 50);
+  TTF_SetFontSize(game_ctx->font, default_font_size + 30);
   SDL_Color color = {235, 203, 139, 255};
   SDL_FPoint loc = {game_ctx->x_offset + (game_ctx->grid_length / 2.0f),
-                    game_ctx->y_offset + (game_ctx->grid_length / 2.0f - 40)};
+                    game_ctx->y_offset + (game_ctx->grid_length / 2.0f - 30)};
   draw_text(game_ctx, "paused !", loc, color, CENTER_ALLIGN);
 
   color = {136, 192, 208, 255};
-  TTF_SetFontSize(game_ctx->font, default_font_size + 10);
+  TTF_SetFontSize(game_ctx->font, default_font_size);
   loc = {game_ctx->x_offset + (game_ctx->grid_length / 2.0f),
-         game_ctx->y_offset + (game_ctx->grid_length / 2.0f) + 40};
+         game_ctx->y_offset + (game_ctx->grid_length / 2.0f) + 25};
   draw_text(game_ctx, "Press any movement key to continue", loc, color,
             CENTER_ALLIGN);
 
