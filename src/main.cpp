@@ -21,13 +21,14 @@
 #include <string>
 
 /**
- * Defaults
+ * Defaults (ignore later when the window resizes)
  * TODO: test and see what happens when the window is not square.
  */
-constexpr int win_width = 650;
-constexpr int win_height = 650;
-constexpr int default_font_size = 32;
+int win_width = 650;
+int win_height = 650;
+int default_font_size = 32;
 
+/* Used while text rendering to align the text */
 #define CENTER_ALLIGN true
 
 /**
@@ -58,11 +59,14 @@ typedef struct {
 
   std::unique_ptr<game::Board> board;
 
+  /*===Board parameters===*/
+
   /* offset at which the board must start from */
-  const float x_offset;
-  const float y_offset;
-  const float grid_length;
-  const float cell_size;
+  float x_offset;
+  float y_offset;
+
+  float grid_length; // gameplay grid would be of grid_length x grid_length
+  float cell_size;   // size of each cell in the grid
 
   State game_state;
 } game_ctx_t;
@@ -83,14 +87,32 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[]) {
     return SDL_APP_FAILURE;
   }
 
-  SDL_Window *window = NULL;
-  SDL_Renderer *renderer = NULL;
-  if (!SDL_CreateWindowAndRenderer("snek", win_width, win_height, 0, &window,
-                                   &renderer)) {
-    SDL_Log("Couldn't Create Window Or Renderer : %s", SDL_GetError());
+  /* === Handle Window === */
+  SDL_Window *window =
+      SDL_CreateWindow("snek", win_width, win_height,
+                       SDL_WINDOW_FULLSCREEN | SDL_WINDOW_RESIZABLE);
+  if (!window) {
+    SDL_Log("Couldn't Create Window : %s", SDL_GetError());
     return SDL_APP_FAILURE;
   }
 
+  /* on some displays the maximisation happens asyncornously, so try to sync
+   * window before taking in the new dimentions */
+  if (!SDL_SyncWindow(window))
+    SDL_Log("Warning: Windows sync failed !");
+
+  /* ===  Handle Renderer === */
+  SDL_Renderer *renderer = SDL_CreateRenderer(window, NULL);
+  if (!renderer) {
+    SDL_Log("Couldn't Create Renderer : %s", SDL_GetError());
+    return SDL_APP_FAILURE;
+  }
+
+  // Change the blening mode to blend (for alpha value of colors to have an
+  // effect when rending stuff)
+  SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
+
+  /*  === Handle Fonts === */
   /*  Init Font ( currntly using EvilVampire-woqBn.ttf)*/
   if (!TTF_Init()) {
     SDL_Log("Couldn't initialize TTF: %s", SDL_GetError());
@@ -103,17 +125,15 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[]) {
     return SDL_APP_FAILURE;
   }
 
-  // Change the blening mode to blend (for alpha value of colors to have an
-  // effect when rending stuff)
-  SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
-
-  // init board offsets (these are hardcoded for now)
+  // FAILSAFE
+  // Note: these values would be rewritten as soon as the window resizes (check
+  // SDL_AppEvent())
   constexpr auto x_offset = 32;
   constexpr auto y_offset = 32;
   auto board = std::make_unique<game::Board>(game::Board());
   const auto grid_size = board->get_grid_size();
   const auto grid_length =
-      std::min(win_width - (2 * x_offset), win_height - (2 * y_offset));
+      std::min(win_width - (2.0f * x_offset), win_height - (2.0f * y_offset));
   const auto cell_size = static_cast<float>(grid_length) / grid_size;
 
   *appstate = new game_ctx_t{.window = window,
@@ -140,7 +160,37 @@ SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event) {
   game_ctx_t *game_ctx = static_cast<game_ctx_t *>(appstate);
   if (event->type == SDL_EVENT_QUIT)
     return SDL_APP_SUCCESS;
-  else if (event->type == SDL_EVENT_KEY_DOWN) {
+  // handle all the parameters when the window resizes
+  else if (event->type == SDL_EVENT_WINDOW_PIXEL_SIZE_CHANGED ||
+           event->type == SDL_EVENT_WINDOW_RESIZED) {
+
+    // this will change the values of dimentions to updated ones
+    SDL_GetRenderOutputSize(game_ctx->renderer, &win_width, &win_height);
+    auto remaining_y = win_height;
+    auto remaining_x = win_width;
+
+    // top buffer for length (3% from the top)
+    auto top_y_buffer = (3 / 100.0f) * (remaining_y);
+    remaining_y -= top_y_buffer;
+
+    auto new_grid_length = (std::min(remaining_x, remaining_y));
+    new_grid_length -= (2 / 100.0f) * new_grid_length;
+
+    auto new_x_offset = (remaining_x - new_grid_length) / 2;
+    auto new_y_offset = ((remaining_y - new_grid_length) / 2) + top_y_buffer;
+
+    auto new_cell_size =
+        static_cast<float>(new_grid_length) / game_ctx->board->get_grid_size();
+
+    // update the game context with the update parameters
+    game_ctx->x_offset = new_x_offset;
+    game_ctx->y_offset = new_y_offset;
+    game_ctx->grid_length = new_grid_length;
+    game_ctx->cell_size = new_cell_size;
+    // default font size if 32% of the grid length
+    default_font_size = (0.032) * new_grid_length;
+
+  } else if (event->type == SDL_EVENT_KEY_DOWN) {
     switch (game_ctx->game_state) {
     case State::play:
       switch (event->key.scancode) {
@@ -235,9 +285,11 @@ SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event) {
  */
 void draw_text(const game_ctx_t *game_ctx, const char *text,
                const SDL_FPoint loc, const SDL_Color color,
+               const int size = default_font_size,
                const bool is_center_alligned = false) {
   SDL_assert(text);
 
+  TTF_SetFontSize(game_ctx->font, size);
   SDL_Surface *sdl_surface =
       TTF_RenderText_Blended(game_ctx->font, text, strlen(text), color);
 
@@ -352,12 +404,11 @@ void draw_food(const game_ctx_t *game_ctx) {
 void draw_score_board(const game_ctx_t *game_ctx) {
   const auto score = game_ctx->board->get_snake().get_size() - 1;
 
-  TTF_SetFontSize(game_ctx->font, default_font_size - 5);
   SDL_Color color = {255, 255, 255, 255}; /* #ffffff */
   SDL_FPoint loc = {game_ctx->x_offset + (game_ctx->grid_length / 2.0f),
-                    game_ctx->y_offset - (game_ctx->grid_length / 16.0f) + 20};
+                    game_ctx->y_offset - default_font_size / 2};
   draw_text(game_ctx, ("Score: " + std::to_string(score)).c_str(), loc, color,
-            CENTER_ALLIGN);
+            default_font_size, CENTER_ALLIGN);
 }
 
 /**
@@ -389,26 +440,24 @@ void draw_title_screen(const game_ctx_t *game_ctx) {
   SDL_FPoint loc;
 
   /*  Draw title Text */
-  TTF_SetFontSize(game_ctx->font, default_font_size + 170);
   color = {235, 203, 139, 255};
   loc = {game_ctx->x_offset + (game_ctx->grid_length / 2.0f),
          game_ctx->y_offset + (game_ctx->grid_length / 4.0f)};
-  draw_text(game_ctx, "SNAKE !", loc, color, CENTER_ALLIGN);
+  draw_text(game_ctx, "SNAKE !", loc, color, default_font_size + 300,
+            CENTER_ALLIGN);
 
   /* Draw movement Controls */
-  TTF_SetFontSize(game_ctx->font, default_font_size);
   color = {180, 147, 173, 255};
   loc = {game_ctx->x_offset + (game_ctx->grid_length / 4.0f),
          game_ctx->y_offset + (game_ctx->grid_length / 2.0f) + 20};
-  draw_text(game_ctx, "W", loc, color, CENTER_ALLIGN);
+  draw_text(game_ctx, "W", loc, color, default_font_size, CENTER_ALLIGN);
   loc.y += 30;
-  draw_text(game_ctx, "A  S  D", loc, color, CENTER_ALLIGN);
+  draw_text(game_ctx, "A  S  D", loc, color, default_font_size, CENTER_ALLIGN);
   color = {136, 192, 208, 255};
   loc.y += 35;
-  draw_text(game_ctx, "Movement", loc, color, CENTER_ALLIGN);
+  draw_text(game_ctx, "Movement", loc, color, default_font_size, CENTER_ALLIGN);
 
   /* Draw other Controls */
-  TTF_SetFontSize(game_ctx->font, default_font_size);
   color = {180, 147, 173, 255};
   loc = {game_ctx->x_offset + (game_ctx->grid_length * 0.65f),
          game_ctx->y_offset + (game_ctx->grid_length / 2.0f) + 5};
@@ -451,22 +500,19 @@ void draw_playing_screen(const game_ctx_t *game_ctx) {
 void draw_pause_screen(const game_ctx_t *game_ctx) {
   draw_playing_screen(game_ctx);
   draw_intrupt_bgwindow(game_ctx);
+
   /* Draw Text */
-  TTF_SetFontSize(game_ctx->font, default_font_size + 30);
   SDL_Color color = {235, 203, 139, 255};
   SDL_FPoint loc = {game_ctx->x_offset + (game_ctx->grid_length / 2.0f),
                     game_ctx->y_offset + (game_ctx->grid_length / 2.0f - 30)};
-  draw_text(game_ctx, "paused !", loc, color, CENTER_ALLIGN);
+  draw_text(game_ctx, "paused !", loc, color, default_font_size + 30,
+            CENTER_ALLIGN);
 
   color = {136, 192, 208, 255};
-  TTF_SetFontSize(game_ctx->font, default_font_size);
   loc = {game_ctx->x_offset + (game_ctx->grid_length / 2.0f),
          game_ctx->y_offset + (game_ctx->grid_length / 2.0f) + 25};
   draw_text(game_ctx, "Press any movement key to continue", loc, color,
-            CENTER_ALLIGN);
-
-  /*set the font size back to normal before moving returning*/
-  TTF_SetFontSize(game_ctx->font, default_font_size);
+            default_font_size, CENTER_ALLIGN);
 }
 
 /*=============== End of Utility function ===============*/
